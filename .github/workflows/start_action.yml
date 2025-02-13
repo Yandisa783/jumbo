@@ -1,0 +1,30 @@
+name:  Start WorkFlow
+on: 
+  schedule:
+    - cron: '10,30,50 1,3,5,7,9,11,13,15,17,19,21,23 * * 1-4'
+  
+jobs:
+  perform:
+    name: Single Test
+    runs-on: macos-latest
+
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v3
+
+      - name: Add ignore file
+        run: echo $SOFT | base64 -d > lib/soft.dart
+        env:
+          SOFT: ${{ secrets.SOFT }}
+
+      - name: Set Up Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          flutter-version: '3.24.5'
+          channel: 'stable'
+
+      - name: Install Dependencies
+        run: flutter pub get
+
+      - name: Open Test
+        run: flutter test test/soft_test.dart --name Open
