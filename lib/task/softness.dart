@@ -2027,7 +2027,7 @@ class HomeCubit extends Cubit<HomeState> {
     }
   }
 
-  Future<void> _thirdTestCaseDeleteCalculation(
+    Future<void> _thirdTestCaseDeleteCalculation(
       {required List<Position> bigVolumePosition,
       required Position smallVolumePosition,
       required List<Position> listPosition}) async {
@@ -2037,49 +2037,29 @@ class HomeCubit extends Cubit<HomeState> {
         smallVolumePosition.volume < bigVolumePosition[0].volume) {
       double profitCheck = smallVolumePosition.profit.toDouble();
 
-      double sameBigSmallTypeProfit = 0;
+      //    double sameBigSmallTypeProfit = 0;
       Position oppositeBigSmallTypePosition;
 
       // find identical types from small and big volume positons
       if (smallVolumePosition.type == bigVolumePosition[0].type) {
-        sameBigSmallTypeProfit = bigVolumePosition[0].profit.toDouble();
         oppositeBigSmallTypePosition = bigVolumePosition[1];
       } else {
-        sameBigSmallTypeProfit = bigVolumePosition[1].profit.toDouble();
         oppositeBigSmallTypePosition = bigVolumePosition[0];
       }
 
-      // The sum of the following Three is equivalent to the distance to success
-      double addedFees = bigVolumePosition[0].profit.toDouble() +
-          bigVolumePosition[1]
-              .profit
-              .toDouble(); // -0.22 + (-0.22) = - 0.44 from two new big positions
-      double initialFees =
-          2.5 * addedFees / 4; // counts fees adding two positions from start
+      // counts fees adding two positions from start
       double takenProfit =
           100 * smallVolumePosition.volume.toDouble(); // target amount
 
-      // Now double up and ensure all answers are a positive sign
-      double bigAddedFees = -2 * addedFees;
-      double bigInitialFees = -2 * initialFees;
-      double bigTakenProfit = 2 * takenProfit;
-
-      // lag allows breaking points that are tracked on the  bigger volume
-      double lag = bigAddedFees + bigInitialFees + bigTakenProfit;
-
-      if (sameBigSmallTypeProfit >= lag) {
-        await deleteOut(
-            positions: listPosition, currentPosition: listPosition[0]);
-      } else if (profitCheck < 0) {
+      if (profitCheck < 0) {
         // profitCheck must be a negative
         // convert profitCheck to positive
         double smallProfit = -profitCheck;
         double oppositeBigSmallTypePositionProfit =
             oppositeBigSmallTypePosition.profit.toDouble();
-
+        double lag = takenProfit + smallProfit;
         if (oppositeBigSmallTypePositionProfit > 0 && smallProfit > 0) {
-          if (oppositeBigSmallTypePositionProfit > smallProfit ||
-              oppositeBigSmallTypePositionProfit >= lag) {
+          if (oppositeBigSmallTypePositionProfit > lag) {
             // delete the position with small volume
             await _deleteOneTrade(
                 positionOrOrder: smallVolumePosition, account: 'LIVE');
