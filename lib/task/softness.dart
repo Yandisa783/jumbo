@@ -2027,7 +2027,7 @@ class HomeCubit extends Cubit<HomeState> {
     }
   }
 
-    Future<void> _thirdTestCaseDeleteCalculation(
+  Future<void> _thirdTestCaseDeleteCalculation(
       {required List<Position> bigVolumePosition,
       required Position smallVolumePosition,
       required List<Position> listPosition}) async {
@@ -2037,7 +2037,7 @@ class HomeCubit extends Cubit<HomeState> {
         smallVolumePosition.volume < bigVolumePosition[0].volume) {
       double profitCheck = smallVolumePosition.profit.toDouble();
 
-      //    double sameBigSmallTypeProfit = 0;
+     
       Position oppositeBigSmallTypePosition;
 
       // find identical types from small and big volume positons
