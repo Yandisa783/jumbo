@@ -1047,23 +1047,36 @@ class HomeCubit extends Cubit<HomeState> {
       symbol = symbolMetaApiLive;
     }
 
-    final resultPlaceOrder = await _placeOrder(PlaceOrderParams(
-        actionType: actionType,
-        symbol: symbol,
-        volume: volume ?? await _riskVolume(),
-        openPrice: 0.0, // value does not apply
-        stopLoss: 0.0, // value does not apply
-        takeProfit: 0.0, // value does not apply
-        account: account));
+    var value = 0;
+    await Future.doWhile(() async {
+      value++;
 
-    resultPlaceOrder.fold(
-      (failure) async {
-        emit(HomeError(failure.errorMessage));
-      },
-      (users) {
-        emit(HomeSucess(orderType: actionType, symbol: symbol));
-      },
-    );
+      final resultPlaceOrder = await _placeOrder(PlaceOrderParams(
+          actionType: actionType,
+          symbol: symbol,
+          volume: volume ?? await _riskVolume(),
+          openPrice: 0.0, // value does not apply
+          stopLoss: 0.0, // value does not apply
+          takeProfit: 0.0, // value does not apply
+          account: account));
+
+      resultPlaceOrder.fold(
+        (failure) async {
+          emit(HomeError(failure.errorMessage));
+        },
+        (users) {
+          value = 3;
+          emit(HomeSucess(orderType: actionType, symbol: symbol));
+        },
+      );
+
+      if (value == 3) {
+        print('Finished with $value trade');
+        return false;
+      }
+      print('Attemted to make trade $value times');
+      return true;
+    });
   }
 
   String _convertTwelveDataToMetaApiLive({required String symbolMetaApiDemo}) {
@@ -1087,10 +1100,10 @@ class HomeCubit extends Cubit<HomeState> {
     }
 
     double volume = accountBalance / 10000;
-    String volumeString = volume.toStringAsFixed(3);
+    String volumeString = volume.toStringAsFixed(4);
     String volumeStringNew = '';
 
-    for (var i = 0; i < volumeString.length - 1; i++) {
+    for (var i = 0; i < volumeString.length - 2; i++) {
       volumeStringNew = volumeStringNew + volumeString[i];
     }
 
@@ -1122,13 +1135,25 @@ class HomeCubit extends Cubit<HomeState> {
         tradeAllowed: false,
         type: '');
 
-    final resultGetAccountInfomation = await _getAccountInformation(
-        const GetAccountInformationParams(account: 'LIVE'));
+    var value = 0;
+    await Future.doWhile(() async {
+      value++;
+      final resultGetAccountInfomation = await _getAccountInformation(
+          const GetAccountInformationParams(account: 'LIVE'));
 
-    resultGetAccountInfomation.fold((failure) async {
-      emit(HomeError(failure.errorMessage));
-    }, (accountInfo) async {
-      accountInformation = accountInfo;
+      resultGetAccountInfomation.fold((failure) async {
+        emit(HomeError(failure.errorMessage));
+      }, (accountInfo) async {
+        accountInformation = accountInfo;
+        value = 3;
+      });
+
+      if (value == 3) {
+        print('Finished with $value accountInfomation');
+        return false;
+      }
+      print('Getting account info failed $value times');
+      return true;
     });
 
     return accountInformation;
@@ -1140,53 +1165,67 @@ class HomeCubit extends Cubit<HomeState> {
   Future<List<Position>> showPositions() async {
     List<Position> listPositions = <Position>[];
     emit(const LoadingData());
-    final resultGetAllPosition =
-        await _getAllPosition(const GetAllPositionParams(account: 'LIVE'));
 
-    resultGetAllPosition.fold((failure) async {
-      emit(HomeError(failure.errorMessage));
-      listPositions.add(Position(
-          id: '',
-          platform: '',
-          type: '',
-          symbol: '',
-          magic: 0,
-          time: DateTime(2000),
-          brokerTime: DateTime(2000),
-          updateTime: DateTime(2000),
-          openPrice: 0,
-          volume: 0,
-          swap: 0,
-          commission: 0,
-          realizedSwap: 0,
-          realizedCommission: 0,
-          unrealizedSwap: 0,
-          unrealizedCommission: 0,
-          reason: '',
-          currentPrice: 0,
-          currentTickValue: 0,
-          realizedProfit: 0,
-          unrealizedProfit: 0,
-          profit: 0,
-          accountCurrencyExchangeRate: 0,
-          updateSequenceNumber: 0));
-    }, (positions) async {
-      positions.sort((a, b) {
-        var atime = a.time;
-        var btime = b.time;
-        return btime.compareTo(
-            atime); //to get the order other way just switch `adate & bdate`
+    var value = 0;
+    await Future.doWhile(() async {
+      value++;
+      final resultGetAllPosition =
+          await _getAllPosition(const GetAllPositionParams(account: 'LIVE'));
+
+      resultGetAllPosition.fold((failure) async {
+        emit(HomeError(failure.errorMessage));
+        listPositions.add(Position(
+            id: '',
+            platform: '',
+            type: '',
+            symbol: '',
+            magic: 0,
+            time: DateTime(2000),
+            brokerTime: DateTime(2000),
+            updateTime: DateTime(2000),
+            openPrice: 0,
+            volume: 0,
+            swap: 0,
+            commission: 0,
+            realizedSwap: 0,
+            realizedCommission: 0,
+            unrealizedSwap: 0,
+            unrealizedCommission: 0,
+            reason: '',
+            currentPrice: 0,
+            currentTickValue: 0,
+            realizedProfit: 0,
+            unrealizedProfit: 0,
+            profit: 0,
+            accountCurrencyExchangeRate: 0,
+            updateSequenceNumber: 0));
+      }, (positions) async {
+        value = 3;
+        positions.sort((a, b) {
+          var atime = a.time;
+          var btime = b.time;
+          return btime.compareTo(
+              atime); //to get the order other way just switch `adate & bdate`
+        });
+
+        countPosition = positions.length;
+        for (var position in positions) {
+          listPositions.add(position);
+        }
+
+        await _cleanUnwantedOrders(positions: positions).then((value) {
+          emit(PositionsLoaded(positions));
+        });
       });
 
-      countPosition = positions.length;
-      for (var position in positions) {
-        listPositions.add(position);
+      if (value == 3) {
+        print('Finished with $value showPositions');
+        return false;
       }
-
-      await _cleanUnwantedOrders(positions: positions).then((value) {
-        emit(PositionsLoaded(positions));
-      });
+      print('showPositions failed $value times');
+      return true;
     });
+
     return listPositions;
   }
 
@@ -1574,21 +1613,33 @@ class HomeCubit extends Cubit<HomeState> {
         buyListPositionSymbol.add(position.symbol);
       }
     }
-    final resultAllOrder =
-        await _getAllOrder(const GetAllOrderParams(account: 'LIVE'));
 
-    resultAllOrder.fold((failure) {
-      emit(HomeError(failure.errorMessage));
-    }, (orders) async {
-      for (var order in orders) {
-        if (order.type == 'ORDER_TYPE_SELL_LIMIT' ||
-            order.type == 'ORDER_TYPE_SELL_STOP' ||
-            order.type == 'ORDER_TYPE_SELL_STOP_LIMIT') {
-          sellListOrder.add(order);
-        } else {
-          buyListOrder.add(order);
+    var value = 0;
+    await Future.doWhile(() async {
+      value++;
+      final resultAllOrder =
+          await _getAllOrder(const GetAllOrderParams(account: 'LIVE'));
+
+      resultAllOrder.fold((failure) {
+        emit(HomeError(failure.errorMessage));
+      }, (orders) async {
+        value = 3;
+        for (var order in orders) {
+          if (order.type == 'ORDER_TYPE_SELL_LIMIT' ||
+              order.type == 'ORDER_TYPE_SELL_STOP' ||
+              order.type == 'ORDER_TYPE_SELL_STOP_LIMIT') {
+            sellListOrder.add(order);
+          } else {
+            buyListOrder.add(order);
+          }
         }
+      });
+
+      if (value == 3) {
+        print('Finished with $value');
+        return false;
       }
+      return true;
     });
 
     for (var order in sellListOrder) {
@@ -1672,17 +1723,32 @@ class HomeCubit extends Cubit<HomeState> {
   Future<bool> _deleteOneTrade(
       {var positionOrOrder, required String account}) async {
     bool isDeleted = false;
-    final resultDeleteATrade = await _deleteATrade(DeleteATradeParams(
-        positionOrOrderId: positionOrOrder.id, account: account));
 
-    resultDeleteATrade.fold(
-      (failure) {
-        emit(HomeError(failure.errorMessage));
-      },
-      (users) {
-        isDeleted = true;
-      },
-    );
+    var value = 0;
+    await Future.doWhile(() async {
+      value++;
+
+      final resultDeleteATrade = await _deleteATrade(DeleteATradeParams(
+          positionOrOrderId: positionOrOrder.id, account: account));
+
+      resultDeleteATrade.fold(
+        (failure) {
+          emit(HomeError(failure.errorMessage));
+        },
+        (users) {
+          value = 3;
+          isDeleted = true;
+        },
+      );
+
+      if (value == 3) {
+        print('Finished with $value deleteOneTrade');
+        return false;
+      }
+      print('delete one trade failed $value times');
+      return true;
+    });
+
     return isDeleted;
   }
 
@@ -1691,14 +1757,27 @@ class HomeCubit extends Cubit<HomeState> {
     bool isBoolean = false;
     emit(const LoadingData());
 
-    final resultModifyPosition = await _doModifyPosition(DoModifyPositionParams(
-        positionId: positionId, takeProfit: takeProfit, account: 'LIVE'));
+    var value = 0;
+    await Future.doWhile(() async {
+      value++;
+      final resultModifyPosition = await _doModifyPosition(
+          DoModifyPositionParams(
+              positionId: positionId, takeProfit: takeProfit, account: 'LIVE'));
 
-    resultModifyPosition.fold((failure) async {
-      emit(HomeError(failure.message));
-    }, (success) {
-      isBoolean = true;
+      resultModifyPosition.fold((failure) async {
+        emit(HomeError(failure.message));
+      }, (success) {
+        value = 3;
+        isBoolean = true;
+      });
+      if (value == 3) {
+        print('Finished with $value performModifyPosition');
+        return false;
+      }
+      print('performModifyPosition failed $value times');
+      return true;
     });
+
     return isBoolean;
   }
 
@@ -1853,7 +1932,7 @@ class HomeCubit extends Cubit<HomeState> {
   Future<String> singleTest() async {
     String gender = "Male";
 
-    // go check all position
+    //go check all position
     List<Position> listPosition = <Position>[];
     await showPositions().then((positions) {
       for (var position in positions) {
