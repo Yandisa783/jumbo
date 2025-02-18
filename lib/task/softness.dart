@@ -1093,7 +1093,11 @@ class HomeCubit extends Cubit<HomeState> {
 
   Future<double> _riskVolume() async {
     AccountInformation accountInformation = await _showAccountInfomation();
-    double accountBalance = accountInformation.balance.toDouble();
+    double totalBalance = accountInformation.balance.toDouble();
+
+    double highestFloatingPercentage = 0.20; // twenty percent
+    double floatingFees = totalBalance * highestFloatingPercentage;
+    double accountBalance = totalBalance - floatingFees;
 
     if (accountBalance > 10000) {
       accountBalance = 10000; // that is 10 000 (ten thousand) dollars
