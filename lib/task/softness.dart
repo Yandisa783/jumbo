@@ -1205,12 +1205,14 @@ class HomeCubit extends Cubit<HomeState> {
             updateSequenceNumber: 0));
       }, (positions) async {
         value = 3;
-        positions.sort((a, b) {
-          var atime = a.time;
-          var btime = b.time;
-          return btime.compareTo(
-              atime); //to get the order other way just switch `adate & bdate`
-        });
+
+        // sort sometimes causes error
+        // positions.sort((a, b) {
+        //   var atime = a.time;
+        //   var btime = b.time;
+        //   return btime.compareTo(
+        //       atime); //to get the order other way just switch `adate & bdate`
+        // });
 
         countPosition = positions.length;
         for (var position in positions) {
