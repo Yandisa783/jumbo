@@ -1095,7 +1095,7 @@ class HomeCubit extends Cubit<HomeState> {
     AccountInformation accountInformation = await _showAccountInfomation();
     double totalBalance = accountInformation.balance.toDouble();
 
-    double highestFloatingPercentage = 0.75; // fifty percent
+    double highestFloatingPercentage = 0.75; // seventy five percent
     double floatingFees = totalBalance * highestFloatingPercentage;
     double accountBalance = totalBalance - floatingFees;
 
@@ -2007,7 +2007,7 @@ class HomeCubit extends Cubit<HomeState> {
         listPosition[0].symbol == listPosition[1].symbol) {
       // find the required difference
       double volume = listPosition[0].volume.toDouble();
-      double requiredDollar = volume * 100;
+      double requiredDollar = volume * 100 * 2; // times two - range movement
 
       // boiler code reduction
       double profitAtZero = listPosition[0].profit.toDouble();
@@ -2115,8 +2115,10 @@ class HomeCubit extends Cubit<HomeState> {
         oppositeBigSmallTypePosition = bigVolumePosition[0];
       }
 
-      double takenProfit =
-          100 * smallVolumePosition.volume.toDouble(); // target amount
+      // target amount
+      double takenProfit = 100 *
+          smallVolumePosition.volume.toDouble() *
+          2; // times two - range movement
 
       if (profitCheck < 0) {
         // profitCheck must be a negative
